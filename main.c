@@ -12,6 +12,8 @@ int main()
     int height; // the number of cells on the Y axis
     scanf("%d", &height); fgetc(stdin);
     char line[height][width+1]; // width characters, each either a number or a '.'
+    int horLink[height][width][width];
+    int verLink[width][height][height];
 
     int maxVal ()
     {
@@ -30,10 +32,42 @@ int main()
 
     for (int i = 0; i < height; i++) 
     {
-        for (int j = 0; j < width; j++) line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
+        for (int j = 0; j < width; j++) 
+        {
+            line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
+            for (int k = 0; k < height; k++) verLink[j][i][k] = 0;
+            for (int k = 0; k < width;  k++) horLink[i][j][k] = 0;
+        }
         fgetc(stdin);
         line[i][width] = 0;
 fprintf(stderr, "%s\n", line[i]);
+    }
+    
+    int canLink(int x, int y, int x1, int y1)
+    {
+        if ((line[y][x] > '0') && (line[y][x] <= '8') && 
+            (line[y1][x1] > '0') && (line[y1][x1] <= '8'))
+            if (y == y1)      
+            {
+fprintf(stderr, "[%d] ", horLink[y][x][x1] + horLink[y][x1][x]);
+                return ((horLink[y][x][x1] + horLink[y][x1][x]) < 2);
+            }
+            else if (x == x1) 
+            {
+fprintf(stderr, "[%d] ", verLink[x][y][y1] + verLink[x][y1][y]);
+                return ((verLink[x][y][y1] + verLink[x][y1][y]) < 2);
+            }
+        return 0;
+    }
+
+    void makeLink(int x, int y, int x1, int y1)
+    {
+fprintf(stderr, "%d %d %d %d 1\n", x, y, x1, y1);
+        printf("%d %d %d %d 1\n", x, y, x1, y1);
+        line[y][x]--;
+        line[y1][x1]--;
+        if (y == y1) horLink[y][x][x1]++;
+        if (x == x1) verLink[x][y][y1]++;
     }
 
     void setLinkFrom(int x, int y)
@@ -44,10 +78,10 @@ fprintf(stderr, "%d %d ", x, y);
         int y1;
         int i;
         for (i = x - 1; i >= 0; i--)
-            if ((line[y][i] >= '0') && (line[y][i] <= '8'))
+            if (canLink(x, y, i, y))
             {
                 int Val = line[y][i] - '0';
-fprintf(stderr, ">> %d %d : %d", i, y, Val);
+fprintf(stderr, " %d %d : %d", i, y, Val);
                 if (Val > max) 
                 {
                     max = Val;
@@ -57,10 +91,10 @@ fprintf(stderr, ">> %d %d : %d", i, y, Val);
                 break;
             }
         for (i = x + 1; i < width; i++)
-            if ((line[y][i] >= '0') && (line[y][i] <= '8'))
+            if (canLink(x, y, i, y))
             {
                 int Val = line[y][i] - '0';
-fprintf(stderr, ">> %d %d : %d", i, y, Val);
+fprintf(stderr, " %d %d : %d", i, y, Val);
                 if (Val > max) 
                 {
                     max = Val;
@@ -70,10 +104,10 @@ fprintf(stderr, ">> %d %d : %d", i, y, Val);
                 break;
             }
         for (i = y - 1; i >= 0; i--)
-            if ((line[i][x] >= '0') && (line[i][x] <= '8'))
+            if (canLink(x, y, x, i))
             {
                 int Val = line[i][x] - '0';
-fprintf(stderr, ">> %d %d : %d", x, i, Val);
+fprintf(stderr, " %d %d : %d", x, i, Val);
                 if (Val > max) 
                 {
                     max = Val;
@@ -83,10 +117,10 @@ fprintf(stderr, ">> %d %d : %d", x, i, Val);
                 break;
             }
         for (i = y + 1; i < height; i++)
-            if ((line[i][x] >= '0') && (line[i][x] <= '8'))
+            if (canLink(x, y, x, i))
             {
                 int Val = line[i][x] - '0';
-fprintf(stderr, ">> %d %d : %d", x, i, Val);
+fprintf(stderr, " %d %d : %d", x, i, Val);
                 if (Val > max) 
                 {
                     max = Val;
@@ -96,13 +130,7 @@ fprintf(stderr, ">> %d %d : %d", x, i, Val);
                 break;
             }
 fprintf(stderr, "|| %d\n", max);
-        if (max > 0)
-        {
-fprintf(stderr, "%d %d %d %d 1\n", x, y, x1, y1);
-         printf("%d %d %d %d 1\n", x, y, x1, y1);
-         line[y][x]--;
-         line[y1][x1]--;
-        }
+        if (max > 0) makeLink(x, y, x1, y1);
         else fprintf(stderr, "Алгоритм не работает\n");
     }
 
