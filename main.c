@@ -76,9 +76,9 @@ fprintf(stderr, "%s\n", line[i]);
                 result = (count == 0);
             }
         }
-        else if (x == x1) 
+        if (x == x1) 
         {
-            if ((verLink[x][y][y1] + verLink[x][y1][y]) < 2);
+            if ((verLink[x][y][y1] + verLink[x][y1][y]) < 2)
             {
                 int count = 0;
                 int ymin = y > y1 ? y1 : y;
@@ -98,12 +98,16 @@ fprintf(stderr, "%s\n", line[i]);
 
     void makeLink(int x, int y, int x1, int y1, int how)
     {
-fprintf(stderr, "%d %d %d %d %d\n", x, y, x1, y1, how);
         printf("%d %d %d %d %d\n", x, y, x1, y1, how);
         line[y][x] -= how;
         line[y1][x1] -= how;
+if (y == y1) fprintf(stderr, "links: %d + %d\n", horLink[y][x][x1], horLink[y][x1][x]);
+if (x == x1) fprintf(stderr, "links: %d + %d\n", verLink[x][y][y1], verLink[x][y1][y]);
         if (y == y1) horLink[y][x][x1] += how;
         if (x == x1) verLink[x][y][y1] += how;
+fprintf(stderr, "%d %d %d %d %d\n=============\n", x, y, x1, y1, how);
+for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
+fprintf(stderr, "=============\n");
     }
     
     void setLinkFrom(int x, int y, int how)
@@ -117,7 +121,7 @@ fprintf(stderr, "%d %d>>", x, y);
         if (findNode(x, y, 1, 0, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d", x1, y1, Val);
+fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -128,7 +132,7 @@ fprintf(stderr, " %d %d : %d", x1, y1, Val);
         if (findNode(x, y, -1, 0, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d", x1, y1, Val);
+fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -139,7 +143,7 @@ fprintf(stderr, " %d %d : %d", x1, y1, Val);
         if (findNode(x, y, 0, 1, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d", x1, y1, Val);
+fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -150,7 +154,7 @@ fprintf(stderr, " %d %d : %d", x1, y1, Val);
         if (findNode(x, y, 0, -1, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d", x1, y1, Val);
+fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -159,7 +163,7 @@ fprintf(stderr, " %d %d : %d", x1, y1, Val);
             }
         }
 
-fprintf(stderr, "|| %d\n", max);
+fprintf(stderr, "| %d\n", max);
         if (max > 0) makeLink(x, y, maxX, maxY, how);
         else fprintf(stderr, "Алгоритм не работает\n");
     }
