@@ -58,15 +58,42 @@ fprintf(stderr, "%s\n", line[i]);
     
     int canLink(int x, int y, int x1, int y1)
     {
+        int result = 0;
         if (y == y1)      
         {
-            return ((horLink[y][x][x1] + horLink[y][x1][x]) < 2);
+            if ((horLink[y][x][x1] + horLink[y][x1][x]) < 2) 
+            {
+                int count = 0;
+                int xmin = x > x1 ? x1 : x;
+                int xmax = x > x1 ? x : x1;
+                for (int xi = xmin + 1; xi < xmax; xi++)
+                    for (int i = 0; i < y; i++)
+                        for (int j = y + 1; j < height; j++)
+                        {
+                            count += verLink[xi][i][j];
+                            count += verLink[xi][j][i];
+                        }
+                result = (count == 0);
+            }
         }
         else if (x == x1) 
         {
-            return ((verLink[x][y][y1] + verLink[x][y1][y]) < 2);
+            if ((verLink[x][y][y1] + verLink[x][y1][y]) < 2);
+            {
+                int count = 0;
+                int ymin = y > y1 ? y1 : y;
+                int ymax = y > y1 ? y : y1;
+                for (int yi = ymin + 1; yi < ymax; yi++)
+                    for (int i = 0; i < x; i++)
+                        for (int j = x + 1; j < width; j++)
+                        {
+                            count += horLink[yi][i][j];
+                            count += horLink[yi][j][i];
+                        }
+                result = (count == 0);
+            }
         }
-        return 0;
+        return result;
     }
 
     void makeLink(int x, int y, int x1, int y1, int how)
