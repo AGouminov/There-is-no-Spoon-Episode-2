@@ -14,6 +14,14 @@ int main()
     char line[height][width+1]; // width characters, each either a number or a '.'
     int horLink[height][width][width];
     int verLink[width][height][height];
+    int makedLink[width*height*4][6];
+    int mkCount = 0;
+    const int parX = 0;
+    const int parY = 1;
+    const int parX1 = 2;
+    const int parY1 = 3;
+    const int parHow = 4;
+    const int parGuess = 5;
 
     int maxVal ()
     {
@@ -98,18 +106,42 @@ fprintf(stderr, "%s\n", line[i]);
         return result;
     }
 
-    void makeLink(int x, int y, int x1, int y1, int how)
+    void makeLink(int x, int y, int x1, int y1, int how, int guess)
     {
-        printf("%d %d %d %d %d\n", x, y, x1, y1, how);
         line[y][x] -= how;
         line[y1][x1] -= how;
 //if (y == y1) fprintf(stderr, "links: %d + %d\n", horLink[y][x][x1], horLink[y][x1][x]);
 //if (x == x1) fprintf(stderr, "links: %d + %d\n", verLink[x][y][y1], verLink[x][y1][y]);
         if (y == y1) horLink[y][x][x1] += how;
         if (x == x1) verLink[x][y][y1] += how;
+        makedLink[mkCount][parX] = x;
+        makedLink[mkCount][parY] = y;
+        makedLink[mkCount][parX1] = x1;
+        makedLink[mkCount][parY1] = y1;
+        makedLink[mkCount][parHow] = how;
+        makedLink[mkCount][parGuess] = guess;
+        mkCount++;
+
 //fprintf(stderr, "%d %d %d %d %d\n=============\n", x, y, x1, y1, how);
 //for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 //fprintf(stderr, "=============\n");
+    }
+    
+    void rollback()
+    {
+        do
+        {
+            int x = makedLink[mkCount][parX];
+            int y = makedLink[mkCount][parY];
+            int x1 = makedLink[mkCount][parX1];
+            int y1 = makedLink[mkCount][parY1];
+            int how = makedLink[mkCount][parHow];
+            mkCount--;
+            line[y][x] += how;
+            line[y1][x1] += how;
+            if (y == y1) horLink[y][x][x1] -= how;
+            if (x == x1) verLink[x][y][y1] -= how;
+        } while (makedLink[mkCount][parGuess]);
     }
     
     void setLinkFrom(int x, int y, int how)
@@ -166,7 +198,7 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
         }
 
 fprintf(stderr, "| %d\n", max);
-        if (max > 0) makeLink(x, y, maxX, maxY, how);
+        if (max > 0) makeLink(x, y, maxX, maxY, how, 1);
         else fprintf(stderr, "Алгоритм не работает\n");
     }
 
@@ -220,19 +252,19 @@ fprintf(stderr, "| %d\n", max);
                         if (nodes == 1)
                         {
 fprintf(stderr, "+++У %d %d всего один сосед \n", x, y);
-                            if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs);
-                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, needs);
-                            if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs);
-                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs);
+                            if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                            if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             count++;
                         }
                         else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3])
                         {
 fprintf(stderr, "+++У %d %d (%d) возможные связи - %d, %d, %d, %d\n", x, y, needs, maxLink[0], maxLink[1], maxLink[2], maxLink[3]);
-                            if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[0]);
-                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[1]);
-                            if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2]);
-                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[3]);
+                            if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[0], 0);
+                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[1], 0);
+                            if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
+                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[3], 0);
                             count++;
                         }
                         else
@@ -266,6 +298,11 @@ fprintf(stderr, "=============\n");
         }    
                     
     } 
-
+    for (int i = 0 ; i < mkCount; i++)
+        printf("%d %d %d %d %d\n", makedLink[i][parX], 
+                                   makedLink[i][parY], 
+                                   makedLink[i][parX1], 
+                                   makedLink[i][parY1], 
+                                   makedLink[i][parHow]);
     return 0;
 }
