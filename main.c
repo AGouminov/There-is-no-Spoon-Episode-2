@@ -164,7 +164,8 @@ int main()
         makedLink[mkCount][parGuess] = guess;
         mkCount++;
 
-//fprintf(stderr, "%d %d %d %d %d\n=============\n", x, y, x1, y1, how);
+fprintf(stderr, "%d:%d-%d:%d %d\n", x, y, x1, y1, how);
+//fprintf(stderr, "=============\n");
 //for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 //fprintf(stderr, "=============\n");
     }
@@ -173,22 +174,25 @@ int main()
     {
         do
         {
+            mkCount--;
             int x = makedLink[mkCount][parX];
             int y = makedLink[mkCount][parY];
             int x1 = makedLink[mkCount][parX1];
             int y1 = makedLink[mkCount][parY1];
             int how = makedLink[mkCount][parHow];
-            mkCount--;
             line[y][x] += how;
             line[y1][x1] += how;
             if (y == y1) horLink[y][x][x1] -= how;
             if (x == x1) verLink[x][y][y1] -= how;
-        } while (makedLink[mkCount][parGuess]);
+fprintf(stderr, "[-] %d %d %d %d %d\n", x, y, x1, y1, how);
+        } while (!makedLink[mkCount][parGuess]);
+        curNodeX = makedLink[mkCount][parX];
+        curNodeY = makedLink[mkCount][parY];
     }
     
     int setLinkFrom(int x, int y, int how)
     {
-fprintf(stderr, "%d %d>>", x, y);
+//fprintf(stderr, "%d %d>>", x, y);
         int max = 0;
         int maxX;
         int maxY;
@@ -197,7 +201,7 @@ fprintf(stderr, "%d %d>>", x, y);
         if (findNode(x, y, 1, 0, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d |", x1, y1, Val);
+//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -208,7 +212,7 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
         if (findNode(x, y, -1, 0, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d |", x1, y1, Val);
+//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -219,7 +223,7 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
         if (findNode(x, y, 0, 1, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d |", x1, y1, Val);
+//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -230,7 +234,7 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
         if (findNode(x, y, 0, -1, &x1, &y1) && canLink(x, y, x1, y1))
         {
             int Val = line[y1][x1] - '0';
-fprintf(stderr, " %d %d : %d |", x1, y1, Val);
+//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             if (Val > max) 
             {
                 max = Val;
@@ -239,7 +243,7 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
             }
         }
 
-fprintf(stderr, "| %d\n", max);
+//fprintf(stderr, "| %d\n", max);
         if (max > 0) 
         {
             makeLink(x, y, maxX, maxY, how, 1);
@@ -259,7 +263,7 @@ fprintf(stderr, "| %d\n", max);
         }
         fgetc(stdin);
         line[i][width] = 0;
-fprintf(stderr, "%s\n", line[i]);
+//fprintf(stderr, "%s\n", line[i]);
     }
     
     do
@@ -312,13 +316,12 @@ fprintf(stderr, "%s\n", line[i]);
                         {
                             if (needs > 2)
                             {
+fprintf(stderr, "надо>2 связей? Откат \n");
                                 rollback();
-                                curNodeX = makedLink[mkCount][parX];
-                                curNodeY = makedLink[mkCount][parY];
                                 x = width;
                                 y = height;
                             }
-fprintf(stderr, "+++У %d %d всего один сосед \n", x, y);
+fprintf(stderr, "[1] ");
                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
@@ -327,9 +330,9 @@ fprintf(stderr, "+++У %d %d всего один сосед \n", x, y);
                             curNodeX = -1;
                             curNodeY = 0;
                         }
-                        else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3])
+                        else if (needs == (maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3]))
                         {
-fprintf(stderr, "+++У %d %d (%d) возможные связи - %d, %d, %d, %d\n", x, y, needs, maxLink[0], maxLink[1], maxLink[2], maxLink[3]);
+fprintf(stderr, "[!] ");
                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[0], 0);
                             if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[1], 0);
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
@@ -338,20 +341,54 @@ fprintf(stderr, "+++У %d %d (%d) возможные связи - %d, %d, %d, %d
                             curNodeX = -1;
                             curNodeY = 0;
                         }
-                        else
-fprintf(stderr, "---У %d %d (%d) возможные связи - %d, %d, %d, %d\n", x, y, needs, maxLink[0], maxLink[1], maxLink[2], maxLink[3]);
+                        else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3] - 1)                        
+                        {
+fprintf(stderr, "[*] ");
+                            if ((maxLink[0] == 2) && findNode(x, y,  0,  1, &x1, &y1)) 
+                            {
+                                makeLink(x, y, x1, y1, 1, 0);
+                                count++;
+                                curNodeX = -1;
+                                curNodeY = 0;
+                            }
+                            if ((maxLink[1] == 2) && findNode(x, y,  0, -1, &x1, &y1)) 
+                            {
+                                makeLink(x, y, x1, y1, 1, 0);
+                                count++;
+                                curNodeX = -1;
+                                curNodeY = 0;
+                            }
+                            if ((maxLink[2] == 2) && findNode(x, y,  1,  0, &x1, &y1)) 
+                            {
+                                makeLink(x, y, x1, y1, 1, 0);
+                                count++;
+                                curNodeX = -1;
+                                curNodeY = 0;
+                            }
+                            if ((maxLink[3] == 2) && findNode(x, y, -1,  0, &x1, &y1)) 
+                            {
+                                makeLink(x, y, x1, y1, 1, 0);
+                                count++;
+                                curNodeX = -1;
+                                curNodeY = 0;
+                            }
+                        }
+
+//                        else
+//fprintf(stderr, "---У %d %d (%d) возможные связи - %d, %d, %d, %d\n", x, y, needs, maxLink[0], maxLink[1], maxLink[2], maxLink[3]);
                     }
                 }
-fprintf(stderr, "[ конец цикла, count = %d ]\n", count);
-fprintf(stderr, "=============\n");
-for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
-fprintf(stderr, "=============\n");
+//fprintf(stderr, "[ конец цикла, count = %d ]\n", count);
+//fprintf(stderr, "=============\n");
+//for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
+//fprintf(stderr, "=============\n");
         } while (count > 0);
         
         int max = maxVal();
         while (max > 0)
         {
-fprintf(stderr, "пробуем наугад ткнуть ячейку с %d неустановленных связей\n", max);
+//fprintf(stderr, "пробуем наугад ткнуть ячейку с %d неустановленных связей\n", max);
+fprintf(stderr, "[?] [%d:%d, %d] ", curNodeX, curNodeY, max);
             int x1 = -1;
             int y1 = -1;
             for (int y = curNodeY; (x1 < 0) && (y < height); y++) 
@@ -367,28 +404,31 @@ fprintf(stderr, "пробуем наугад ткнуть ячейку с %d н�
                 max--;
                 curNodeX = -1;
                 curNodeY = 0;
+                if (max == 0)
+                {
+fprintf(stderr, "Все перепробовали, еще откат\n");
+                    rollback();
+                }
             }
             else if (setLinkFrom(x1, y1, 1))
                 break;
             else
             {
+fprintf(stderr, "%d:%d не с чем связать\n", x1, y1);
                 rollback();
-                curNodeX = makedLink[mkCount][parX];
-                curNodeY = makedLink[mkCount][parY];
             }
         }
             
-fprintf(stderr, "=============\n");
-for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
-fprintf(stderr, "=============\n");
+//fprintf(stderr, "=============\n");
+//for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
+//fprintf(stderr, "=============\n");
         if (maxVal() == 0) 
             if (countGroups() == 1)
                 break;
             else
             {
+fprintf(stderr, "Все раздали, граф несвязен\n");
                 rollback();
-                curNodeX = makedLink[mkCount][parX];
-                curNodeY = makedLink[mkCount][parY];
             }
     } while (1);
     for (int i = 0; i < mkCount; i++)
