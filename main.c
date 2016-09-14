@@ -23,7 +23,7 @@ int main()
     const int parY1 = 3;
     const int parHow = 4;
     const int parGuess = 5;
-    int curNodeX = -1;
+    int curNodeX = 0;
     int curNodeY = 0;
     
     int maxVal ()
@@ -190,7 +190,7 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", x, y, x1, y1, how);
         curNodeY = makedLink[mkCount][parY];
     }
     
-    int setLinkFrom(int x, int y, int how)
+    int setLinkFrom(int x, int y)
     {
 //fprintf(stderr, "%d %d>>", x, y);
         int max = 0;
@@ -198,55 +198,20 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", x, y, x1, y1, how);
         int maxY;
         int x1;
         int y1;
-        if (findNode(x, y, 1, 0, &x1, &y1) && canLink(x, y, x1, y1))
+        int skip = 0;
+        if ((x == curNodeX) && (y == curNodeY) && (mkCount > 0))
         {
-            int Val = line[y1][x1] - '0';
-//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
-            if (Val > max) 
-            {
-                max = Val;
-                maxX = x1;
-                maxY = y1;
-            }
+            if (makedLink[mkCount][parX1] > makedLink[mkCount][parX]) skip = 1;
+            if (makedLink[mkCount][parX1] < makedLink[mkCount][parX]) skip = 2;
+            if (makedLink[mkCount][parY1] > makedLink[mkCount][parY]) skip = 3;
+            if (makedLink[mkCount][parY1] < makedLink[mkCount][parY]) skip = 4;
         }
-        if (findNode(x, y, -1, 0, &x1, &y1) && canLink(x, y, x1, y1))
+        if (((skip < 1) && findNode(x, y,  1,  0, &x1, &y1) && canLink(x, y, x1, y1)) ||
+            ((skip < 2) && findNode(x, y, -1,  0, &x1, &y1) && canLink(x, y, x1, y1)) ||
+            ((skip < 3) && findNode(x, y,  0,  1, &x1, &y1) && canLink(x, y, x1, y1)) ||
+            ((skip < 4) && findNode(x, y, 0, -1, &x1, &y1) && canLink(x, y, x1, y1)))
         {
-            int Val = line[y1][x1] - '0';
-//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
-            if (Val > max) 
-            {
-                max = Val;
-                maxX = x1;
-                maxY = y1;
-            }
-        }
-        if (findNode(x, y, 0, 1, &x1, &y1) && canLink(x, y, x1, y1))
-        {
-            int Val = line[y1][x1] - '0';
-//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
-            if (Val > max) 
-            {
-                max = Val;
-                maxX = x1;
-                maxY = y1;
-            }
-        }
-        if (findNode(x, y, 0, -1, &x1, &y1) && canLink(x, y, x1, y1))
-        {
-            int Val = line[y1][x1] - '0';
-//fprintf(stderr, " %d %d : %d |", x1, y1, Val);
-            if (Val > max) 
-            {
-                max = Val;
-                maxX = x1;
-                maxY = y1;
-            }
-        }
-
-//fprintf(stderr, "| %d\n", max);
-        if (max > 0) 
-        {
-            makeLink(x, y, maxX, maxY, how, 1);
+            makeLink(x, y, x1, y1, 1, 1);
             return 1;
         }
         else return 0;
@@ -327,7 +292,7 @@ fprintf(stderr, "[1] ");
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             count++;
-                            curNodeX = -1;
+                            curNodeX = 0;
                             curNodeY = 0;
                         }
                         else if (needs == (maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3]))
@@ -338,7 +303,7 @@ fprintf(stderr, "[!] ");
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
                             if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[3], 0);
                             count++;
-                            curNodeX = -1;
+                            curNodeX = 0;
                             curNodeY = 0;
                         }
                         else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3] - 1)                        
@@ -348,28 +313,28 @@ fprintf(stderr, "[*] ");
                             {
                                 makeLink(x, y, x1, y1, 1, 0);
                                 count++;
-                                curNodeX = -1;
+                                curNodeX = 0;
                                 curNodeY = 0;
                             }
                             if ((maxLink[1] == 2) && findNode(x, y,  0, -1, &x1, &y1)) 
                             {
                                 makeLink(x, y, x1, y1, 1, 0);
                                 count++;
-                                curNodeX = -1;
+                                curNodeX = 0;
                                 curNodeY = 0;
                             }
                             if ((maxLink[2] == 2) && findNode(x, y,  1,  0, &x1, &y1)) 
                             {
                                 makeLink(x, y, x1, y1, 1, 0);
                                 count++;
-                                curNodeX = -1;
+                                curNodeX = 0;
                                 curNodeY = 0;
                             }
                             if ((maxLink[3] == 2) && findNode(x, y, -1,  0, &x1, &y1)) 
                             {
                                 makeLink(x, y, x1, y1, 1, 0);
                                 count++;
-                                curNodeX = -1;
+                                curNodeX = 0;
                                 curNodeY = 0;
                             }
                         }
@@ -392,7 +357,7 @@ fprintf(stderr, "[?] [%d:%d, %d] ", curNodeX, curNodeY, max);
             int x1 = -1;
             int y1 = -1;
             for (int y = curNodeY; (x1 < 0) && (y < height); y++) 
-                for (int x = curNodeX + 1; x < width; x++) 
+                for (int x = curNodeX; x < width; x++) 
                     if (line[y][x] == '0' + max) 
                     {
                         x1 = x;
@@ -402,7 +367,7 @@ fprintf(stderr, "[?] [%d:%d, %d] ", curNodeX, curNodeY, max);
             if (x1 < 0)
             {
                 max--;
-                curNodeX = -1;
+                curNodeX = 0;
                 curNodeY = 0;
                 if (max == 0)
                 {
@@ -410,7 +375,7 @@ fprintf(stderr, "Все перепробовали, еще откат\n");
                     rollback();
                 }
             }
-            else if (setLinkFrom(x1, y1, 1))
+            else if (setLinkFrom(x1, y1))
                 break;
             else
             {
