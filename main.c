@@ -14,6 +14,7 @@ int main()
     char line[height][width+1]; // width characters, each either a number or a '.'
     int horLink[height][width][width];
     int verLink[width][height][height];
+    
     int makedLink[width*height*4][6];
     int mkCount = 0;
     const int parX = 0;
@@ -22,7 +23,9 @@ int main()
     const int parY1 = 3;
     const int parHow = 4;
     const int parGuess = 5;
-
+    int curNodeX = -1;
+    int curNodeY = 0;
+    
     int maxVal ()
     {
         int result = 0;
@@ -38,19 +41,6 @@ int main()
         return result;
     }
 
-    for (int i = 0; i < height; i++) 
-    {
-        for (int j = 0; j < width; j++) 
-        {
-            line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
-            for (int k = 0; k < height; k++) verLink[j][i][k] = 0;
-            for (int k = 0; k < width;  k++) horLink[i][j][k] = 0;
-        }
-        fgetc(stdin);
-        line[i][width] = 0;
-fprintf(stderr, "%s\n", line[i]);
-    }
-    
     int findNode(int x, int y, int incX, int incY, int * x1, int * y1)
     {
         *x1 = x + incX;
@@ -105,7 +95,59 @@ fprintf(stderr, "%s\n", line[i]);
         }
         return result;
     }
+    
+    
+    int countGroups()
+    {
+        int groupNbr[width][height];
+        int maxGroup()
+        {
+            int result = 0;
+            for (int i = 0; i < width; i++)
+                for (int j = 0; j < height; j++)
+                    if (result < groupNbr[i][j]) result = groupNbr[i][j];
+            return result;        
+        }
 
+        for (int i = 0; i < height; i++) 
+            for (int j = 0; j < width; j++) 
+                groupNbr[j][i] = 0;
+
+        for (int i = 0; i < mkCount; i++)
+        {
+            int x = makedLink[i][parX]; 
+            int y = makedLink[i][parY];
+            int x1 = makedLink[i][parX1];
+            int y1 = makedLink[i][parY1];
+
+            if (groupNbr[x][y] == 0)
+                if (groupNbr[x1][y1] == 0)
+                {
+                    groupNbr[x][y] = maxGroup() + 1;
+                    groupNbr[x1][y1] = groupNbr[x][y];
+                }
+                else
+                    groupNbr[x][y] = groupNbr[x1][y1];
+            else
+                if (groupNbr[x1][y1] == 0)
+                    groupNbr[x1][y1] = groupNbr[x][y];
+                else 
+                {
+                    int maxGr = groupNbr[x][y];
+                    int minGr = groupNbr[x1][y1];
+                    if (groupNbr[x1][y1] > groupNbr[x][y])
+                    {
+                        maxGr = groupNbr[x1][y1];
+                        minGr = groupNbr[x][y];
+                    }
+                    for (int i = 0; i < width; i++)
+                        for (int j = 0; j < height; j++)
+                            if (groupNbr[i][j] == maxGr) groupNbr[i][j] = minGr;
+                }
+        }
+        return maxGroup();
+    }
+    
     void makeLink(int x, int y, int x1, int y1, int how, int guess)
     {
         line[y][x] -= how;
@@ -144,7 +186,7 @@ fprintf(stderr, "%s\n", line[i]);
         } while (makedLink[mkCount][parGuess]);
     }
     
-    void setLinkFrom(int x, int y, int how)
+    int setLinkFrom(int x, int y, int how)
     {
 fprintf(stderr, "%d %d>>", x, y);
         int max = 0;
@@ -198,12 +240,29 @@ fprintf(stderr, " %d %d : %d |", x1, y1, Val);
         }
 
 fprintf(stderr, "| %d\n", max);
-        if (max > 0) makeLink(x, y, maxX, maxY, how, 1);
-        else fprintf(stderr, "Алгоритм не работает\n");
+        if (max > 0) 
+        {
+            makeLink(x, y, maxX, maxY, how, 1);
+            return 1;
+        }
+        else return 0;
     }
 
+
+    for (int i = 0; i < height; i++) 
+    {
+        for (int j = 0; j < width; j++) 
+        {
+            line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
+            for (int k = 0; k < height; k++) verLink[j][i][k] = 0;
+            for (int k = 0; k < width;  k++) horLink[i][j][k] = 0;
+        }
+        fgetc(stdin);
+        line[i][width] = 0;
+fprintf(stderr, "%s\n", line[i]);
+    }
     
-    while (maxVal())
+    do
     {
         int count;
         do
@@ -251,12 +310,22 @@ fprintf(stderr, "| %d\n", max);
 
                         if (nodes == 1)
                         {
+                            if (needs > 2)
+                            {
+                                rollback();
+                                curNodeX = makedLink[mkCount][parX];
+                                curNodeY = makedLink[mkCount][parY];
+                                x = width;
+                                y = height;
+                            }
 fprintf(stderr, "+++У %d %d всего один сосед \n", x, y);
                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
                             count++;
+                            curNodeX = -1;
+                            curNodeY = 0;
                         }
                         else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3])
                         {
@@ -266,6 +335,8 @@ fprintf(stderr, "+++У %d %d (%d) возможные связи - %d, %d, %d, %d
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
                             if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[3], 0);
                             count++;
+                            curNodeX = -1;
+                            curNodeY = 0;
                         }
                         else
 fprintf(stderr, "---У %d %d (%d) возможные связи - %d, %d, %d, %d\n", x, y, needs, maxLink[0], maxLink[1], maxLink[2], maxLink[3]);
@@ -276,29 +347,51 @@ fprintf(stderr, "=============\n");
 for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 fprintf(stderr, "=============\n");
         } while (count > 0);
-
+        
         int max = maxVal();
-        if (max > 0)
+        while (max > 0)
         {
 fprintf(stderr, "пробуем наугад ткнуть ячейку с %d неустановленных связей\n", max);
             int x1 = -1;
             int y1 = -1;
-            for (int y = 0; (x1 < 0) && (y < height); y++) 
-                for (int x = 0; x < width; x++) 
+            for (int y = curNodeY; (x1 < 0) && (y < height); y++) 
+                for (int x = curNodeX + 1; x < width; x++) 
                     if (line[y][x] == '0' + max) 
                     {
                         x1 = x;
                         y1 = y;
                         break;
                     }
-            setLinkFrom(x1, y1, 1);
+            if (x1 < 0)
+            {
+                max--;
+                curNodeX = -1;
+                curNodeY = 0;
+            }
+            else if (setLinkFrom(x1, y1, 1))
+                break;
+            else
+            {
+                rollback();
+                curNodeX = makedLink[mkCount][parX];
+                curNodeY = makedLink[mkCount][parY];
+            }
+        }
+            
 fprintf(stderr, "=============\n");
 for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 fprintf(stderr, "=============\n");
-        }    
-                    
-    } 
-    for (int i = 0 ; i < mkCount; i++)
+        if (maxVal() == 0) 
+            if (countGroups() == 1)
+                break;
+            else
+            {
+                rollback();
+                curNodeX = makedLink[mkCount][parX];
+                curNodeY = makedLink[mkCount][parY];
+            }
+    } while (1);
+    for (int i = 0; i < mkCount; i++)
         printf("%d %d %d %d %d\n", makedLink[i][parX], 
                                    makedLink[i][parY], 
                                    makedLink[i][parX1], 
