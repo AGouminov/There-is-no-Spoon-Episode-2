@@ -7,40 +7,44 @@
  **/
 int main()
 {
-    int width; // the number of cells on the X axis
-    scanf("%d", &width);
-    int height; // the number of cells on the Y axis
-    scanf("%d", &height); fgetc(stdin);
-    char line[height][width+1]; // width characters, each either a number or a '.'
-    int horLink[height][width][width];
-    int verLink[width][height][height];
+ int width; // the number of cells on the X axis
+ scanf("%d", &width);
+ int height; // the number of cells on the Y axis
+ scanf("%d", &height); fgetc(stdin);
+ char line[height][width+1]; // width characters, each either a number or a '.'
+ int horLink[height][width][width];
+ int verLink[width][height][height];
+
+ typedef struct link 
+ {
+  int X, Y, X1, Y1, How, Guess;
+ } LINK;
+ 
+ LINK doneLink[width*height*4];
+ int dCnt = 0;
+ int curNodeX = 0;
+ int curNodeY = 0;
+ int justRollback = 0;
     
-    int makedLink[width*height*4][6];
-    int mkCount = 0;
-    const int parX = 0;
-    const int parY = 1;
-    const int parX1 = 2;
-    const int parY1 = 3;
-    const int parHow = 4;
-    const int parGuess = 5;
-    int curNodeX = 0;
-    int curNodeY = 0;
-    int justRollback = 0;
-    
-    int maxVal ()
+ int nextNode(int * fromX, int * fromY)
+ {
+  int x = *fromX;
+  int y = *fromY;
+  for ( ; y < height; y++) 
+  {
+   for ( ;x < width; x++) 
+   {
+    if ((line[y][x] > '0') && (line[y][x] <= '8')) 
     {
-        int result = 0;
-        for (int i = 0; i < height; i++) 
-        for (int j = 0; j < width; j++) 
-        {
-            if ((line[i][j] >= '0') && (line[i][j] <= '8'))
-            {
-                int Val = line[i][j] - '0';
-                if (Val > result) result = Val;
-            }
-        }
-        return result;
+     *fromX = x;
+     *fromY = y;
+     return 1;
     }
+   }
+   x = 0;
+  }
+  return 0;
+ }
 
     int findNode(int x, int y, int incX, int incY, int * x1, int * y1)
     {
@@ -105,20 +109,22 @@ int main()
             int result = 0;
             for (int i = 0; i < width; i++)
                 for (int j = 0; j < height; j++)
+                {
                     if (result < groupNbr[i][j]) result = groupNbr[i][j];
+                }
             return result;        
         }
 
-        for (int i = 0; i < height; i++) 
-            for (int j = 0; j < width; j++) 
-                groupNbr[j][i] = 0;
+        for (int i = 0; i < width; i++) 
+            for (int j = 0; j < height; j++) 
+                groupNbr[i][j] = 0;
 
-        for (int i = 0; i < mkCount; i++)
+        for (int i = 0; i < dCnt; i++)
         {
-            int x = makedLink[i][parX]; 
-            int y = makedLink[i][parY];
-            int x1 = makedLink[i][parX1];
-            int y1 = makedLink[i][parY1];
+            int x = doneLink[i].X; 
+            int y = doneLink[i].Y;
+            int x1 = doneLink[i].X1;
+            int y1 = doneLink[i].Y1;
 
             if (groupNbr[x][y] == 0)
                 if (groupNbr[x1][y1] == 0)
@@ -127,10 +133,14 @@ int main()
                     groupNbr[x1][y1] = groupNbr[x][y];
                 }
                 else
+                {
                     groupNbr[x][y] = groupNbr[x1][y1];
+                }
             else
                 if (groupNbr[x1][y1] == 0)
+                {
                     groupNbr[x1][y1] = groupNbr[x][y];
+                }
                 else 
                 {
                     int maxGr = groupNbr[x][y];
@@ -142,7 +152,10 @@ int main()
                     }
                     for (int i = 0; i < width; i++)
                         for (int j = 0; j < height; j++)
-                            if (groupNbr[i][j] == maxGr) groupNbr[i][j] = minGr;
+                            if (groupNbr[i][j] == maxGr)
+                            {
+                                groupNbr[i][j] = minGr;
+                            }    
                 }
         }
         return maxGroup();
@@ -151,14 +164,14 @@ int main()
     void addLink(int x, int y, int x1, int y1, int how, int guess)
     {
         justRollback = 0;
-        makedLink[mkCount][parX] = x;
-        makedLink[mkCount][parY] = y;
-        makedLink[mkCount][parX1] = x1;
-        makedLink[mkCount][parY1] = y1;
-        makedLink[mkCount][parHow] = how;
-        makedLink[mkCount][parGuess] = guess;
-        mkCount++;
-//fprintf(stderr, "%d:%d-%d:%d %d\n", x, y, x1, y1, how);
+        doneLink[dCnt].X = x;
+        doneLink[dCnt].Y = y;
+        doneLink[dCnt].X1 = x1;
+        doneLink[dCnt].Y1 = y1;
+        doneLink[dCnt].How = how;
+        doneLink[dCnt].Guess = guess;
+        dCnt++;
+fprintf(stderr, "%d:%d-%d:%d %d %d\n", x, y, x1, y1, how, guess);
     }
     
     void countLink(int x, int y, int x1, int y1, int how)
@@ -185,55 +198,32 @@ int main()
     {
         do
         {
-            mkCount--;
-            countLink(makedLink[mkCount][parX], 
-                      makedLink[mkCount][parY], 
-                      makedLink[mkCount][parX1], 
-                      makedLink[mkCount][parY1], 
-                      -makedLink[mkCount][parHow]);
-
-//fprintf(stderr, "[-] %d %d %d %d %d\n", makedLink[mkCount][parX], 
-//                                        makedLink[mkCount][parY], 
-//                                        makedLink[mkCount][parX1], 
-//                                        makedLink[mkCount][parY1], 
-//                                        makedLink[mkCount][parHow]);
-        } while (!makedLink[mkCount][parGuess]);
-        curNodeX = makedLink[mkCount][parX];
-        curNodeY = makedLink[mkCount][parY];
+            dCnt--;
+            countLink(doneLink[dCnt].X, doneLink[dCnt].Y, doneLink[dCnt].X1, doneLink[dCnt].Y1, -doneLink[dCnt].How);
+fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, doneLink[dCnt].X1, doneLink[dCnt].Y1, doneLink[dCnt].How);
+        } while (!doneLink[dCnt].Guess);
+        curNodeX = doneLink[dCnt].X;
+        curNodeY = doneLink[dCnt].Y;
         justRollback = 1;
     }
     
     int setLinkFrom(int x, int y)
     {
-//fprintf(stderr, "%d %d>>", x, y);
-        int max = 0;
-        int maxX;
-        int maxY;
         int x1;
         int y1;
-        int skip = 0;
-        if (justRollback)
-        {
-            if (makedLink[mkCount][parX1] > makedLink[mkCount][parX]) skip = 1;
-            if (makedLink[mkCount][parX1] < makedLink[mkCount][parX]) skip = 2;
-            if (makedLink[mkCount][parY1] > makedLink[mkCount][parY]) skip = 3;
-            if (makedLink[mkCount][parY1] < makedLink[mkCount][parY]) skip = 4;
-        }
-
 //fprintf(stderr, "\n=============\n");
 //for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 //fprintf(stderr, "=============\n");
-//fprintf(stderr, "skip = %d\n", skip);
-        
-        if (((skip < 1) && findNode(x, y,  1,  0, &x1, &y1) && canLink(x, y, x1, y1)) ||
-            ((skip < 2) && findNode(x, y, -1,  0, &x1, &y1) && canLink(x, y, x1, y1)) ||
-            ((skip < 3) && findNode(x, y,  0,  1, &x1, &y1) && canLink(x, y, x1, y1)) ||
-            ((skip < 4) && findNode(x, y, 0, -1, &x1, &y1) && canLink(x, y, x1, y1)))
+        if (justRollback && (doneLink[dCnt].Y1 > doneLink[dCnt].Y))
+         return 0;
+        else if (!justRollback && findNode(x, y, 1, 0, &x1, &y1) && canLink(x, y, x1, y1) ||
+                 findNode(x, y, 0, 1, &x1, &y1) && canLink(x, y, x1, y1)) 
         {
-            makeLink(x, y, x1, y1, 1, 1);
-            return 1;
+         makeLink(x, y, x1, y1, 1, 1);
+         return 1;
         }
-        else return 0;
+        else
+         return 0;
     }
 
 
@@ -253,11 +243,11 @@ int main()
     void intialPhaseAdd(int x, int y, int x1, int y1)
     {
         int already = 0;
-        for (int i = 0; !already && (i < mkCount); i++)
-            already = ((x == makedLink[i][parX]) && (x1 == makedLink[i][parX1]) || 
-                       (x1 == makedLink[i][parX]) && (x == makedLink[i][parX1])) &&
-                      ((y == makedLink[i][parY]) && (y1 == makedLink[i][parY1]) ||        
-                       (y1 == makedLink[i][parY]) && (y == makedLink[i][parY1]));
+        for (int i = 0; !already && (i < dCnt); i++)
+            already = ((x == doneLink[i].X) && (x1 == doneLink[i].X1) || 
+                       (x1 == doneLink[i].X) && (x == doneLink[i].X1)) &&
+                      ((y == doneLink[i].Y) && (y1 == doneLink[i].Y1) ||        
+                       (y1 == doneLink[i].Y) && (y == doneLink[i].Y1));
         if (!already) addLink(x, y, x1, y1, 1, 0);
     }
     
@@ -295,7 +285,11 @@ int main()
                     onlyX = x1;
                     onlyY = y1;
                 }
-                if (nodes == 1) intialPhaseAdd(x, y, onlyX, onlyY);
+                if (nodes == 1) 
+		 if ((onlyX >= x) && (onlyY >= y))
+                  intialPhaseAdd(x, y, onlyX, onlyY);
+                 else
+                  intialPhaseAdd(onlyX, onlyY, x, y);
             }
             else if (line[y][x] == '2') 
             {
@@ -326,14 +320,14 @@ int main()
                 if ((nodes == 2) && (nodes1or2 == 2))
                 {
                     if (findNode(x, y,  0,  1, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
-                    if (findNode(x, y,  0, -1, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
+                    if (findNode(x, y,  0, -1, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
                     if (findNode(x, y,  1,  0, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
-                    if (findNode(x, y, -1,  0, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
+                    if (findNode(x, y, -1,  0, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
                 }
             }
         }
-    for (int i = 0; i < mkCount; i++)
-        countLink(makedLink[i][parX], makedLink[i][parY], makedLink[i][parX1], makedLink[i][parY1], makedLink[i][parHow]);
+    for (int i = 0; i < dCnt; i++)
+        countLink(doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
     
     do
     {
@@ -392,9 +386,9 @@ int main()
                             }
 //fprintf(stderr, "[1] ");
                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
                             count++;
                             curNodeX = 0;
                             curNodeY = 0;
@@ -403,9 +397,9 @@ int main()
                         {
 //fprintf(stderr, "[!] ");
                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[0], 0);
-                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[1], 0);
+                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, maxLink[1], 0);
                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
-                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[3], 0);
+                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, maxLink[3], 0);
                             count++;
                             curNodeX = 0;
                             curNodeY = 0;
@@ -422,7 +416,7 @@ int main()
                             }
                             if ((maxLink[1] == 2) && findNode(x, y,  0, -1, &x1, &y1)) 
                             {
-                                makeLink(x, y, x1, y1, 1, 0);
+                                makeLink(x1, y1, x, y, 1, 0);
                                 count++;
                                 curNodeX = 0;
                                 curNodeY = 0;
@@ -436,7 +430,7 @@ int main()
                             }
                             if ((maxLink[3] == 2) && findNode(x, y, -1,  0, &x1, &y1)) 
                             {
-                                makeLink(x, y, x1, y1, 1, 0);
+                                makeLink(x1, y1, x, y, 1, 0);
                                 count++;
                                 curNodeX = 0;
                                 curNodeY = 0;
@@ -451,46 +445,26 @@ int main()
 //fprintf(stderr, "=============\n");
 //for (int i = 0; i < height; i++) fprintf(stderr, "%s\n", line[i]);
 //fprintf(stderr, "=============\n");
+
         } while (count > 0);
-//fprintf(stderr, "пробуем наугад ткнуть ячейку с %d неустановленных связей\n", max);
-        if (maxVal()) 
-        {
-//fprintf(stderr, "[?] [%d:%d] ", curNodeX, curNodeY);
-            int x1 = -1;
-            int y1 = -1;
-            for (int y = curNodeY; (x1 < 0) && (y < height); y++) 
-                for (int x = curNodeX; x < width; x++) 
-                    if ((line[y][x] > '0') && (line[y][x] <= '8'))
-                    {
-                        x1 = x;
-                        y1 = y;
-                        break;
-                    }
-            if (x1 < 0)
-            {
-//fprintf(stderr, "Все перепробовали, еще откат\n");
-                rollback();
-            }
-            else if (!setLinkFrom(x1, y1))
-            {
-//fprintf(stderr, "%d:%d не с чем связать\n", x1, y1);
-                rollback();
-            }
-        }
+
+fprintf(stderr, "[?] [%d:%d] ", curNodeX, curNodeY);
+        if (nextNode(&curNodeX, &curNodeY)) 
+{        
+fprintf(stderr, "[?] [%d:%d] ", curNodeX, curNodeY);
+         if (!setLinkFrom(curNodeX, curNodeY)) rollback();
+}
         else    
-            if (countGroups() == 1)
-                break;
-            else
-            {
-//fprintf(stderr, "Все раздали, граф несвязен\n");
-                rollback();
-            }
+{        
+//fprintf(stderr, "нет ничего после [%d:%d], групп - %d ", curNodeX, curNodeY, countGroups());
+
+         if (countGroups() == 1)
+          break;
+         else
+          rollback();//Все раздали, граф несвязен
+}          
     } while (1);
-    for (int i = 0; i < mkCount; i++)
-        printf("%d %d %d %d %d\n", makedLink[i][parX], 
-                                   makedLink[i][parY], 
-                                   makedLink[i][parX1], 
-                                   makedLink[i][parY1], 
-                                   makedLink[i][parHow]);
+    for (int i = 0; i < dCnt; i++)
+        printf("%d %d %d %d %d\n", doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
     return 0;
 }
