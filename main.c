@@ -5,6 +5,8 @@
 /**
  * The machines are gaining ground. Time to show them what we're really made of...
  **/
+
+
 int main()
 {
  int width; // the number of cells on the X axis
@@ -12,8 +14,8 @@ int main()
  int height; // the number of cells on the Y axis
  scanf("%d", &height); fgetc(stdin);
  char line[height][width+1]; // width characters, each either a number or a '.'
- int horLink[height][width][width];
- int verLink[width][height][height];
+ int horLink[height][width];
+ int verLink[height][width];
 
  typedef struct link 
  {
@@ -66,35 +68,29 @@ int main()
             result = 0;
         else if (y == y1)      
         {
-            if ((horLink[y][x][x1] + horLink[y][x1][x]) < 2) 
+            if (horLink[y][x] < 2) 
             {
                 int count = 0;
                 int xmin = x > x1 ? x1 : x;
                 int xmax = x > x1 ? x : x1;
+                int x2, y2;
                 for (int xi = xmin + 1; xi < xmax; xi++)
-                    for (int i = 0; i < y; i++)
-                        for (int j = y + 1; j < height; j++)
-                        {
-                            count += verLink[xi][i][j];
-                            count += verLink[xi][j][i];
-                        }
+                 if (findNode(xi, y, 0, -1, &x2, &y2))
+                  count += verLink[y2][x2];
                 result = (count == 0);
             }
         }
         else if (x == x1) 
         {
-            if ((verLink[x][y][y1] + verLink[x][y1][y]) < 2)
+            if (verLink[y][x] < 2)
             {
                 int count = 0;
                 int ymin = y > y1 ? y1 : y;
                 int ymax = y > y1 ? y : y1;
+                int x2, y2;
                 for (int yi = ymin + 1; yi < ymax; yi++)
-                    for (int i = 0; i < x; i++)
-                        for (int j = x + 1; j < width; j++)
-                        {
-                            count += horLink[yi][i][j];
-                            count += horLink[yi][j][i];
-                        }
+                 if (findNode(x, yi, -1, 0, &x2, &y2))
+                  count += horLink[y2][x2];
                 result = (count == 0);
             }
         }
@@ -180,8 +176,8 @@ fprintf(stderr, "%d:%d-%d:%d %d %d\n", x, y, x1, y1, how, guess);
         line[y1][x1] -= how;
 //if (y == y1) fprintf(stderr, "links: %d + %d\n", horLink[y][x][x1], horLink[y][x1][x]);
 //if (x == x1) fprintf(stderr, "links: %d + %d\n", verLink[x][y][y1], verLink[x][y1][y]);
-        if (y == y1) horLink[y][x][x1] += how;
-        if (x == x1) verLink[x][y][y1] += how;
+        if (y == y1) horLink[y][x] += how;
+        if (x == x1) verLink[y][x] += how;
     }
     
     void makeLink(int x, int y, int x1, int y1, int how, int guess)
@@ -232,8 +228,8 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, done
         for (int j = 0; j < width; j++) 
         {
             line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
-            for (int k = 0; k < height; k++) verLink[j][i][k] = 0;
-            for (int k = 0; k < width;  k++) horLink[i][j][k] = 0;
+            verLink[i][j] = 0;
+            horLink[i][j] = 0;
         }
         fgetc(stdin);
         line[i][width] = 0;
@@ -347,9 +343,7 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, done
                         int maxLink[4] = {0, 0, 0, 0};
                         int getMaxLink(int x, int y, int x1, int y1)
                         {
-                            int max1 = 2;
-                            if (y == y1) max1 -= (horLink[y][x][x1] + horLink[y][x1][x]);
-                            else         max1 -= (verLink[x][y][y1] + verLink[x][y1][y]);
+                            int max1 = 2 - ((y == y1) ? horLink[y][x] : verLink[y][x]);
                             int max2 = (line[y1][x1] > '1') ? 2 : 1;
                             return (max1 < max2) ? max1 : max2;
                         }
@@ -362,7 +356,7 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, done
                         if (findNode(x, y,  0, -1, &x1, &y1) && canLink(x, y, x1, y1))
                         {
                             nodes++;
-                            maxLink[1] = getMaxLink(x, y, x1, y1);
+                            maxLink[1] = getMaxLink(x1, y1, x, y);
                         }
                         if (findNode(x, y,  1,  0, &x1, &y1) && canLink(x, y, x1, y1))
                         {
@@ -372,7 +366,7 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, done
                         if (findNode(x, y, -1,  0, &x1, &y1) && canLink(x, y, x1, y1))
                         {
                             nodes++;
-                            maxLink[3] = getMaxLink(x, y, x1, y1);
+                            maxLink[3] = getMaxLink(x1, y1, x, y);
                         }
 
                         if (nodes == 1)
@@ -384,14 +378,17 @@ fprintf(stderr, "[-] %d %d %d %d %d\n", doneLink[dCnt].X, doneLink[dCnt].Y, done
                                 x = width;
                                 y = height;
                             }
+                            else
+                            {
 //fprintf(stderr, "[1] ");
-                            if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                            if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
-                            if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                            if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
-                            count++;
-                            curNodeX = 0;
-                            curNodeY = 0;
+                             if (maxLink[0] && findNode(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                             if (maxLink[1] && findNode(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
+                             if (maxLink[2] && findNode(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+                             if (maxLink[3] && findNode(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
+                             count++;
+                             curNodeX = 0;
+                             curNodeY = 0;
+                            }
                         }
                         else if (needs == (maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3]))
                         {
