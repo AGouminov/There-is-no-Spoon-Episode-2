@@ -11,6 +11,11 @@ typedef struct link
  int X, Y, X1, Y1, How, Guess;
 } LINK;
 
+#define UP    = 0;
+#define DOWN  = 1;
+#define RIGHT = 2;
+#define LEFT  = 3;
+
 int width; // the number of cells on the X axis
 int height; // the number of cells on the Y axis
 char** line;
@@ -206,67 +211,65 @@ void intialPhase()
  int onlyX;
  int onlyY;
  for (int y = 0; y < height; y++) 
- {
   for (int x = 0; x < width; x++)
-  {
-   nodes2orMore = 0;      
-   nodes = 0;
-   nodes1or2 = 0;
-   if (findNeighbor(x, y,  0,  1, &x1, &y1))
+   if ((line[y][x] > '0') && (line[y][x] <= '8'))
    {
-    if (line[y1][x1] > '1') 
+    nodes2orMore = 0;      
+    nodes = 0;
+    nodes1or2 = 0;
+    if (findNeighbor(x, y,  0,  1, &x1, &y1))
     {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
+     if (line[y1][x1] > '1') 
+     {
+      nodes2orMore++;
+      onlyX = x1;
+      onlyY = y1;
+     }
+     nodes++;
+     nodes1or2 += (line[y1][x1] <= '2');
     }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y,  0, -1, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
+    if (findNeighbor(x, y,  0, -1, &x1, &y1)) 
     {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
+     if (line[y1][x1] > '1') 
+     {
+      nodes2orMore++;
+      onlyX = x1;
+      onlyY = y1;
+     }
+     nodes++;
+     nodes1or2 += (line[y1][x1] <= '2');
     }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y,  1,  0, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
+    if (findNeighbor(x, y,  1,  0, &x1, &y1)) 
     {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
+     if (line[y1][x1] > '1') 
+     {
+      nodes2orMore++;
+      onlyX = x1;
+      onlyY = y1;
+     }
+     nodes++;
+     nodes1or2 += (line[y1][x1] <= '2');
     }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y, -1,  0, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
+    if (findNeighbor(x, y, -1,  0, &x1, &y1)) 
     {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
-    }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
+     if (line[y1][x1] > '1') 
+     {
+      nodes2orMore++;
+      onlyX = x1;
+      onlyY = y1;
+     }
+     nodes++;
+     nodes1or2 += (line[y1][x1] <= '2');
+    } 
 
-   if (nodes2orMore == 1) 
-   {
-    if ((onlyX >= x) && (onlyY >= y))
-     intialPhaseAdd(x, y, onlyX, onlyY);
-    else
-     intialPhaseAdd(onlyX, onlyY, x, y);
-   }
-   if (line[y][x] == '2') 
-   {
-    if ((nodes == 2) && (nodes1or2 == 2))
+    if (nodes2orMore == 1)
+    {
+     if ((onlyX >= x) && (onlyY >= y))
+      intialPhaseAdd(x, y, onlyX, onlyY);
+     else
+      intialPhaseAdd(onlyX, onlyY, x, y);
+    }
+    if ((line[y][x] == '2') && (nodes == 2) && (nodes1or2 == 2))
     {
      if (findNeighbor(x, y,  0,  1, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
      if (findNeighbor(x, y,  0, -1, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
@@ -274,11 +277,10 @@ void intialPhase()
      if (findNeighbor(x, y, -1,  0, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
     }
    }
-  }
- }
  for (int i = 0; i < dCnt; i++)
   countLink(doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
 }
+
 
 int main()
 {
@@ -313,6 +315,8 @@ int main()
   line[i][width] = 0;
  }
 
+ intialPhase();
+ 
     do
     {
         int count;
@@ -436,3 +440,4 @@ int main()
         printf("%d %d %d %d %d\n", doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
     return 0;
 }
+
