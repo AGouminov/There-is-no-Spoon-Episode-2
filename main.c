@@ -197,9 +197,16 @@ int GuessOneLink()
  int x1;
  int y1;
  if (justRollback && (doneLink[dCnt].Y1 > doneLink[dCnt].Y))
+  //Mы только что откатили связь "вниз", то есть перебрали все варианты и ничего не нашли. 
+  //Значит, неверно угадана более ранняя связь.
   return 0;
- else if (!justRollback && findNeighbor(curNodeX, curNodeY, RIGHT, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1) ||
-                           findNeighbor(curNodeX, curNodeY, DOWN, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1)) 
+ else if (!justRollback && findNeighbor(curNodeX, curNodeY, RIGHT, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1)) 
+  //Если только что откатили связь, то вправо гадать уже нельзя.
+ {
+  makeLink(curNodeX, curNodeY, x1, y1, 1, 1);
+  return 1;
+ }
+ else if (findNeighbor(curNodeX, curNodeY, DOWN, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1)) 
  {
   makeLink(curNodeX, curNodeY, x1, y1, 1, 1);
   return 1;
@@ -226,6 +233,7 @@ void intialPhaseAdd(int x, int y, int x1, int y1)
 
 void intialPhase()
 {
+//Пара простых правил, вытекающих из требования связности.
  int nodes, nodes1or2, nodes2orMore;
  int x1;
  int y1;
@@ -253,7 +261,8 @@ void intialPhase()
      }
     }
 
-    if (nodes2orMore == 1)
+    if (nodes2orMore == 1) 
+    // Если только один сосед больше чем "1", то с ним есть связь.
     {
      if ((onlyX >= x) && (onlyY >= y))
       intialPhaseAdd(x, y, onlyX, onlyY);
@@ -261,6 +270,7 @@ void intialPhase()
       intialPhaseAdd(onlyX, onlyY, x, y);
     }
     if ((cell[y][x] == '2') && (nodes == 2) && (nodes1or2 == 2))
+    // Если у "2" ровно два соседа и оба "1" или "2", то связи есть с обоими.
      for (DIRECTION dir = UP; dir <= LEFT; dir++)
       if (findNeighbor(x, y, dir, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
    }
@@ -302,24 +312,14 @@ void DoAllExplicit()
       }
      }
   
-     if (nodes == 1)
+     if (needs > totalLinks)
      {
-      if (needs > 2)
-      {
-       rollback();
-       x = width;
-       y = height;
-      }
-      else
-      {
-       for (DIRECTION dir = UP; dir <= LEFT; dir++)
-        if (maxLinks[dir] && findNeighbor(x, y, dir, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-       count++;
-       curNodeX = 0;
-       curNodeY = 0;
-      }
+      rollback();
+      x = width;
+      y = height;
      }
      else if (needs == totalLinks)
+     //Все возможные связи нужны
      {
       for (DIRECTION dir = UP; dir <= LEFT; dir++)
        if (maxLinks[dir] && findNeighbor(x, y, dir, &x1, &y1)) makeLink(x, y, x1, y1, maxLinks[dir], 0);
@@ -329,6 +329,7 @@ void DoAllExplicit()
      }
      else if (needs == totalLinks - 1)                        
      {
+      //Из возможных связей только одна лишняя. Значит, там где возможны две, точно есть хоть одна.
       for (DIRECTION dir = UP; dir <= LEFT; dir++)
       if ((maxLinks[dir] == 2) && findNeighbor(x, y, dir, &x1, &y1)) 
       {
@@ -360,6 +361,14 @@ int main()
   verLink[i] = (int*)  malloc(width * sizeof(int));
   groupNbr[i] = (int*) malloc(width * sizeof(int));
   cell[i] = (char*) malloc((width+1) * sizeof(char));
+  for (int j = 0; j < width; j++) 
+  {
+   cell[i][j] = fgetc(stdin); 
+   verLink[i][j] = 0;
+   horLink[i][j] = 0;
+  }
+  fgetc(stdin);
+  cell[i][width] = 0;
  }
  doneLink = (LINK*) malloc((width*height*4) * sizeof(LINK));
 
@@ -368,18 +377,6 @@ int main()
  curNodeY = 0;
  justRollback = 0;
     
- for (int i = 0; i < height; i++) 
- {
-  for (int j = 0; j < width; j++) 
-  {
-   cell[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
-   verLink[i][j] = 0;
-   horLink[i][j] = 0;
-  }
-  fgetc(stdin);
-  cell[i][width] = 0;
- }
-
  intialPhase();
  
  do
@@ -391,9 +388,10 @@ int main()
    if (!GuessOneLink()) rollback();
   }
   else if (countGroups() == 1)
+   //Все раздали, граф связен. Ура.
    break;
   else
-   rollback();//Все раздали, граф несвязен
+   rollback(); //Все раздали, граф несвязен.
  } while (1);
  
  for (int i = 0; i < dCnt; i++)
