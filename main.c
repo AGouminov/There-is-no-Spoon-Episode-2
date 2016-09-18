@@ -106,7 +106,7 @@ int maxGroup()
  return result;        
 }
 
-int countGroups()
+int isAllNodesConnected()
 {
  for (int i = 0; i < height; i++) 
   for (int j = 0; j < width; j++) 
@@ -143,7 +143,7 @@ int countGroups()
      if (groupNbr[i][j] == maxGr) groupNbr[i][j] = minGr;
   }
  }
- return maxGroup();
+ return (maxGroup() == 1);
 }
 
 void addLink(int x, int y, int x1, int y1, int how, int isGuess)
@@ -387,7 +387,7 @@ int main()
   {
    if (!GuessOneLink()) rollback();
   }
-  else if (countGroups() == 1)
+  else if (isAllNodesConnected())
    //Все раздали, граф связен. Ура.
    break;
   else
