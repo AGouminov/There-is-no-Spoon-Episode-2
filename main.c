@@ -8,7 +8,7 @@
 
 typedef struct link 
 {
- int X, Y, X1, Y1, How, Guess;
+ int X, Y, X1, Y1, How, IsGuess;
 } LINK;
 
 typedef enum direction 
@@ -146,7 +146,7 @@ int countGroups()
  return maxGroup();
 }
 
-void addLink(int x, int y, int x1, int y1, int how, int guess)
+void addLink(int x, int y, int x1, int y1, int how, int isGuess)
 {
  justRollback = 0;
  doneLink[dCnt].X = x;
@@ -154,7 +154,7 @@ void addLink(int x, int y, int x1, int y1, int how, int guess)
  doneLink[dCnt].X1 = x1;
  doneLink[dCnt].Y1 = y1;
  doneLink[dCnt].How = how;
- doneLink[dCnt].Guess = guess;
+ doneLink[dCnt].IsGuess = isGuess;
  dCnt++;
 }
  
@@ -166,17 +166,17 @@ void countLink(int x, int y, int x1, int y1, int how)
  if (x == x1) verLink[y][x] += how;
 }
     
-void makeLink(int x, int y, int x1, int y1, int how, int guess)
+void makeLink(int x, int y, int x1, int y1, int how, int isGuess)
 {
  if ((x <= x1) && (y <= y1))
  {
   countLink(x, y, x1, y1, how);
-  addLink(x, y, x1, y1, how, guess);
+  addLink(x, y, x1, y1, how, isGuess);
  }
  else
  {
   countLink(x1, y1, x, y, how);
-  addLink(x1, y1, x, y, how, guess);
+  addLink(x1, y1, x, y, how, isGuess);
  }
 }
     
@@ -186,7 +186,7 @@ void rollback()
  {
   dCnt--;
   countLink(doneLink[dCnt].X, doneLink[dCnt].Y, doneLink[dCnt].X1, doneLink[dCnt].Y1, -doneLink[dCnt].How);
- } while (!doneLink[dCnt].Guess);
+ } while (!doneLink[dCnt].IsGuess);
  curNodeX = doneLink[dCnt].X;
  curNodeY = doneLink[dCnt].Y;
  justRollback = 1;
@@ -246,7 +246,7 @@ void intialPhase()
     nodes2orMore = 0;      
     nodes = 0;
     nodes1or2 = 0;
-    for (DIRECTION dir = UP; dir <= LEFT; dir++)
+    for (DIRECTION dir = UP; dir <= LEFT; dir=(DIRECTION)((int)dir + 1))
     {
      if (findNeighbor(x, y, dir, &x1, &y1))
      {
@@ -271,7 +271,7 @@ void intialPhase()
     }
     if ((cell[y][x] == '2') && (nodes == 2) && (nodes1or2 == 2))
     // Если у "2" ровно два соседа и оба "1" или "2", то связи есть с обоими.
-     for (DIRECTION dir = UP; dir <= LEFT; dir++)
+     for (DIRECTION dir = UP; dir <= LEFT; dir=(DIRECTION)((int)dir + 1))
       if (findNeighbor(x, y, dir, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
    }
  for (int i = 0; i < dCnt; i++)
@@ -296,7 +296,7 @@ void DoAllExplicit()
      int nodes = 0;
      int maxLinks[4] = {0, 0, 0, 0};
      int totalLinks = 0;
-     for (DIRECTION dir = UP; dir <= LEFT; dir++)
+     for (DIRECTION dir = UP; dir <= LEFT; dir=(DIRECTION)((int)dir + 1))
      {
       if (findNeighbor(x, y, dir, &x1, &y1)) if (canLink(x, y, x1, y1))
       {
@@ -321,7 +321,7 @@ void DoAllExplicit()
      else if (needs == totalLinks)
      //Все возможные связи нужны
      {
-      for (DIRECTION dir = UP; dir <= LEFT; dir++)
+      for (DIRECTION dir = UP; dir <= LEFT; dir=(DIRECTION)((int)dir + 1))
        if (maxLinks[dir] && findNeighbor(x, y, dir, &x1, &y1)) makeLink(x, y, x1, y1, maxLinks[dir], 0);
       count++;
       curNodeX = 0;
@@ -330,7 +330,7 @@ void DoAllExplicit()
      else if (needs == totalLinks - 1)                        
      {
       //Из возможных связей только одна лишняя. Значит, там где возможны две, точно есть хоть одна.
-      for (DIRECTION dir = UP; dir <= LEFT; dir++)
+      for (DIRECTION dir = UP; dir <= LEFT; dir=(DIRECTION)((int)dir + 1))
       if ((maxLinks[dir] == 2) && findNeighbor(x, y, dir, &x1, &y1)) 
       {
        makeLink(x, y, x1, y1, 1, 0);
