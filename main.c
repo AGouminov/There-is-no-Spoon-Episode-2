@@ -11,9 +11,14 @@ typedef struct link
  int X, Y, X1, Y1, How, Guess;
 } LINK;
 
+typedef enum direction 
+{
+ UP, DOWN, RIGHT, LEFT
+} DIRECTION;
+
 int width; // the number of cells on the X axis
 int height; // the number of cells on the Y axis
-char** line;
+char** cell;
 int** horLink;
 int** verLink;
 LINK* doneLink;
@@ -28,20 +33,25 @@ int nextNode(int * fromX, int * fromY)
  int x = *fromX;
  for (int y = *fromY; y < height; y++) 
  {
-  for ( ;x < width; x++) if ((line[y][x] > '0') && (line[y][x] <= '8')) { *fromX = x; *fromY = y; return 1;}
+  for ( ;x < width; x++) if ((cell[y][x] > '0') && (cell[y][x] <= '8')) { *fromX = x; *fromY = y; return 1;}
   x = 0;
  }
  return 0;
 }
 
-int findNeighbor(int x, int y, int incX, int incY, int * x1, int * y1)
+int findNeighbor(int x, int y, DIRECTION dir, int * x1, int * y1)
 {
+ int incX, incY;
+ if      (dir == UP)    {incX =  0; incY = -1;}
+ else if (dir == DOWN)  {incX =  0; incY =  1;}
+ else if (dir == RIGHT) {incX =  1; incY =  0;}
+ else if (dir == LEFT)  {incX = -1; incY =  0;}
  int result = 0;
  int xi = x + incX;
  int yi = y + incY;
  while (!result && (xi >= 0) && (xi < width) && (yi >= 0) && (yi < height))
  {
-  if ((line[yi][xi] >= '0') && (line[yi][xi] <= '8')) 
+  if ((cell[yi][xi] >= '0') && (cell[yi][xi] <= '8')) 
   {
    result = 1;
    *x1 = xi;
@@ -56,7 +66,7 @@ int findNeighbor(int x, int y, int incX, int incY, int * x1, int * y1)
 int canLink(int x, int y, int x1, int y1)
 {
  int result = 1;
- if ((line[y][x] == '0') || (line[y1][x1] == '0'))
+ if ((cell[y][x] == '0') || (cell[y1][x1] == '0'))
   result = 0;
  else if (y == y1)      
  {
@@ -67,7 +77,7 @@ int canLink(int x, int y, int x1, int y1)
   {
    int count = 0;
    for (xmin++; xmin < xmax; xmin++)
-    if (findNeighbor(xmin, y, 0, -1, &x2, &y2)) count += verLink[y2][x2];
+    if (findNeighbor(xmin, y, UP, &x2, &y2)) count += verLink[y2][x2];
    result = (count == 0);
   }
  }
@@ -80,7 +90,7 @@ int canLink(int x, int y, int x1, int y1)
   {
    int count = 0;
    for (ymin++; ymin < ymax; ymin++)
-    if (findNeighbor(x, ymin, -1, 0, &x2, &y2)) count += horLink[y2][x2];
+    if (findNeighbor(x, ymin, LEFT, &x2, &y2)) count += horLink[y2][x2];
    result = (count == 0);
   }
  }
@@ -150,16 +160,24 @@ void addLink(int x, int y, int x1, int y1, int how, int guess)
  
 void countLink(int x, int y, int x1, int y1, int how)
 {
- line[y][x] -= how;
- line[y1][x1] -= how;
+ cell[y][x] -= how;
+ cell[y1][x1] -= how;
  if (y == y1) horLink[y][x] += how;
  if (x == x1) verLink[y][x] += how;
 }
     
 void makeLink(int x, int y, int x1, int y1, int how, int guess)
 {
- countLink(x, y, x1, y1, how);
- addLink(x, y, x1, y1, how, guess);
+ if ((x <= x1) && (y <= y1))
+ {
+  countLink(x, y, x1, y1, how);
+  addLink(x, y, x1, y1, how, guess);
+ }
+ else
+ {
+  countLink(x1, y1, x, y, how);
+  addLink(x1, y1, x, y, how, guess);
+ }
 }
     
 void rollback()
@@ -174,28 +192,36 @@ void rollback()
  justRollback = 1;
 }
     
-int setLinkFrom(int x, int y)
+int GuessOneLink()
 {
  int x1;
  int y1;
  if (justRollback && (doneLink[dCnt].Y1 > doneLink[dCnt].Y))
   return 0;
- else if (!justRollback && findNeighbor(x, y, 1, 0, &x1, &y1) && canLink(x, y, x1, y1) ||
-                           findNeighbor(x, y, 0, 1, &x1, &y1) && canLink(x, y, x1, y1)) 
+ else if (!justRollback && findNeighbor(curNodeX, curNodeY, RIGHT, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1) ||
+                           findNeighbor(curNodeX, curNodeY, DOWN, &x1, &y1) && canLink(curNodeX, curNodeY, x1, y1)) 
  {
-  makeLink(x, y, x1, y1, 1, 1);
+  makeLink(curNodeX, curNodeY, x1, y1, 1, 1);
   return 1;
  }
  else
   return 0;
 }
 
-void intialPhaseAdd(int x, int y, int x1, int y1)
+void _intialPhaseAdd(int x, int y, int x1, int y1)
 {
  int already = 0;
  for (int i = 0; !already && (i < dCnt); i++)
   already = ((x == doneLink[i].X) && (x1 == doneLink[i].X1) && (y == doneLink[i].Y) && (y1 == doneLink[i].Y1));
  if (!already) addLink(x, y, x1, y1, 1, 0);
+}
+
+void intialPhaseAdd(int x, int y, int x1, int y1)
+{
+ if ((x <= x1) && (y <= y1))
+  _intialPhaseAdd(x, y, x1, y1);
+ else
+  _intialPhaseAdd(x1, y1, x, y);
 }
 
 void intialPhase()
@@ -206,96 +232,137 @@ void intialPhase()
  int onlyX;
  int onlyY;
  for (int y = 0; y < height; y++) 
- {
   for (int x = 0; x < width; x++)
-  {
-   nodes2orMore = 0;      
-   nodes = 0;
-   nodes1or2 = 0;
-   if (findNeighbor(x, y,  0,  1, &x1, &y1))
+   if ((cell[y][x] > '0') && (cell[y][x] <= '8'))
    {
-    if (line[y1][x1] > '1') 
+    nodes2orMore = 0;      
+    nodes = 0;
+    nodes1or2 = 0;
+    for (DIRECTION dir = UP; dir <= LEFT; dir++)
     {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
+     if (findNeighbor(x, y, dir, &x1, &y1))
+     {
+      if (cell[y1][x1] > '1') 
+      {
+       nodes2orMore++;
+       onlyX = x1;
+       onlyY = y1;
+      }
+      nodes++;
+      nodes1or2 += (cell[y1][x1] <= '2');
+     }
     }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y,  0, -1, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
-    {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
-    }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y,  1,  0, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
-    {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
-    }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
-   if (findNeighbor(x, y, -1,  0, &x1, &y1)) 
-   {
-    if (line[y1][x1] > '1') 
-    {
-     nodes2orMore++;
-     onlyX = x1;
-     onlyY = y1;
-    }
-    nodes++;
-    nodes1or2 += (line[y1][x1] <= '2');
-   }
 
-   if (nodes2orMore == 1) 
-   {
-    if ((onlyX >= x) && (onlyY >= y))
-     intialPhaseAdd(x, y, onlyX, onlyY);
-    else
-     intialPhaseAdd(onlyX, onlyY, x, y);
-   }
-   if (line[y][x] == '2') 
-   {
-    if ((nodes == 2) && (nodes1or2 == 2))
+    if (nodes2orMore == 1)
     {
-     if (findNeighbor(x, y,  0,  1, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
-     if (findNeighbor(x, y,  0, -1, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
-     if (findNeighbor(x, y,  1,  0, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
-     if (findNeighbor(x, y, -1,  0, &x1, &y1)) intialPhaseAdd(x1, y1, x, y);
+     if ((onlyX >= x) && (onlyY >= y))
+      intialPhaseAdd(x, y, onlyX, onlyY);
+     else
+      intialPhaseAdd(onlyX, onlyY, x, y);
+    }
+    if ((cell[y][x] == '2') && (nodes == 2) && (nodes1or2 == 2))
+     for (DIRECTION dir = UP; dir <= LEFT; dir++)
+      if (findNeighbor(x, y, dir, &x1, &y1)) intialPhaseAdd(x, y, x1, y1);
+   }
+ for (int i = 0; i < dCnt; i++)
+  countLink(doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
+}
+
+void DoAllExplicit()
+{
+ int count;
+ do
+ {
+  count = 0;
+  for (int y = 0; y < height; y++) 
+  {
+   for (int x = 0; x < width; x++) 
+   {
+    int needs = cell[y][x] - '0';
+    if ((needs > 0) && (needs <= 8))
+    {
+     int x1;
+     int y1;
+     int nodes = 0;
+     int maxLinks[4] = {0, 0, 0, 0};
+     int totalLinks = 0;
+     for (DIRECTION dir = UP; dir <= LEFT; dir++)
+     {
+      if (findNeighbor(x, y, dir, &x1, &y1)) if (canLink(x, y, x1, y1))
+      {
+       nodes++;
+       int max1 = 2;
+       if (y == y1)
+        max1 -= (x < x1) ? horLink[y][x] : horLink[y][x1]; 
+       else
+        max1 -= (y < y1) ? verLink[y][x] : verLink[y1][x]; 
+       int max2 = (cell[y1][x1] > '1') ? 2 : 1;
+       maxLinks[dir] = (max1 < max2) ? max1 : max2;
+       totalLinks += maxLinks[dir];
+      }
+     }
+  
+     if (nodes == 1)
+     {
+      if (needs > 2)
+      {
+       rollback();
+       x = width;
+       y = height;
+      }
+      else
+      {
+       for (DIRECTION dir = UP; dir <= LEFT; dir++)
+        if (maxLinks[dir] && findNeighbor(x, y, dir, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
+       count++;
+       curNodeX = 0;
+       curNodeY = 0;
+      }
+     }
+     else if (needs == totalLinks)
+     {
+      for (DIRECTION dir = UP; dir <= LEFT; dir++)
+       if (maxLinks[dir] && findNeighbor(x, y, dir, &x1, &y1)) makeLink(x, y, x1, y1, maxLinks[dir], 0);
+      count++;
+      curNodeX = 0;
+      curNodeY = 0;
+     }
+     else if (needs == totalLinks - 1)                        
+     {
+      for (DIRECTION dir = UP; dir <= LEFT; dir++)
+      if ((maxLinks[dir] == 2) && findNeighbor(x, y, dir, &x1, &y1)) 
+      {
+       makeLink(x, y, x1, y1, 1, 0);
+       count++;
+       curNodeX = 0;
+       curNodeY = 0;
+      }
+     }
     }
    }
   }
- }
- for (int i = 0; i < dCnt; i++)
-  countLink(doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
+ } while (count > 0);
 }
 
 int main()
 {
  scanf("%d", &width);
- scanf("%d", &height); fgetc(stdin);
+ scanf("%d", &height); 
+ fgetc(stdin);
+
  horLink = (int**) malloc(height * sizeof(int*));
  verLink = (int**) malloc(height * sizeof(int*));
  groupNbr = (int**) malloc(height * sizeof(int*));
- line = (char**) malloc(height * sizeof(char*));
+ cell = (char**) malloc(height * sizeof(char*));
  for (int i = 0; i < height; i++)
  {
   horLink[i] = (int*)  malloc(width * sizeof(int));
   verLink[i] = (int*)  malloc(width * sizeof(int));
-  groupNbr[i] = (int*)  malloc(width * sizeof(int));
-  line[i]    = (char*) malloc((width+1) * sizeof(char));
+  groupNbr[i] = (int*) malloc(width * sizeof(int));
+  cell[i] = (char*) malloc((width+1) * sizeof(char));
  }
  doneLink = (LINK*) malloc((width*height*4) * sizeof(LINK));
+
  dCnt = 0;
  curNodeX = 0;
  curNodeY = 0;
@@ -305,134 +372,31 @@ int main()
  {
   for (int j = 0; j < width; j++) 
   {
-   line[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
+   cell[i][j] = fgetc(stdin); // width characters, each either a number or a '.'
    verLink[i][j] = 0;
    horLink[i][j] = 0;
   }
   fgetc(stdin);
-  line[i][width] = 0;
+  cell[i][width] = 0;
  }
 
-    do
-    {
-        int count;
-        do
-        {
-            count = 0;
-            for (int y = 0; y < height; y++) 
-                for (int x = 0; x < width; x++) 
-                {
-                    int needs = line[y][x] - '0';
-                    if ((needs > 0) && (needs <= 8))
-                    {
-                        int x1;
-                        int y1;
-                        int nodes = 0;
-                        int maxLink[4] = {0, 0, 0, 0};
-                        int getMaxLink(int x, int y, int x1, int y1)
-                        {
-                            int max1 = 2;
-                            if (y == y1)
-                             max1 -= (x < x1) ? horLink[y][x] : horLink[y][x1]; 
-                            else
-                             max1 -= (y < y1) ? verLink[y][x] : verLink[y1][x]; 
-                            int max2 = (line[y1][x1] > '1') ? 2 : 1;
-                            return (max1 < max2) ? max1 : max2;
-                        }
-                        if (findNeighbor(x, y,  0,  1, &x1, &y1)) if (canLink(x, y, x1, y1))
-                        {
-                            nodes++;
-                            maxLink[0] = getMaxLink(x, y, x1, y1);
-                        }
-                        if (findNeighbor(x, y,  0, -1, &x1, &y1)) if (canLink(x, y, x1, y1))
-                        {
-                            nodes++;
-                            maxLink[1] = getMaxLink(x, y, x1, y1);
-                        }
-                        if (findNeighbor(x, y,  1,  0, &x1, &y1)) if (canLink(x, y, x1, y1))
-                        {
-                            nodes++;
-                            maxLink[2] = getMaxLink(x, y, x1, y1);
-                        }
-                        if (findNeighbor(x, y, -1,  0, &x1, &y1)) if (canLink(x, y, x1, y1))
-                        {
-                            nodes++;
-                            maxLink[3] = getMaxLink(x, y, x1, y1);
-                        }
-                        if (nodes == 1)
-                        {
-                            if (needs > 2)
-                            {
-                                rollback();
-                                x = width;
-                                y = height;
-                            }
-                            else
-                            {
-                             if (maxLink[0] && findNeighbor(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                             if (maxLink[1] && findNeighbor(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
-                             if (maxLink[2] && findNeighbor(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, needs, 0);
-                             if (maxLink[3] && findNeighbor(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, needs, 0);
-                             count++;
-                             curNodeX = 0;
-                             curNodeY = 0;
-                            }
-                        }
-                        else if (needs == (maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3]))
-                        {
-                            if (maxLink[0] && findNeighbor(x, y,  0,  1, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[0], 0);
-                            if (maxLink[1] && findNeighbor(x, y,  0, -1, &x1, &y1)) makeLink(x1, y1, x, y, maxLink[1], 0);
-                            if (maxLink[2] && findNeighbor(x, y,  1,  0, &x1, &y1)) makeLink(x, y, x1, y1, maxLink[2], 0);
-                            if (maxLink[3] && findNeighbor(x, y, -1,  0, &x1, &y1)) makeLink(x1, y1, x, y, maxLink[3], 0);
-                            count++;
-                            curNodeX = 0;
-                            curNodeY = 0;
-                        }
-                        else if (needs == maxLink[0] + maxLink[1] + maxLink[2] + maxLink[3] - 1)                        
-                        {
-                            if ((maxLink[0] == 2) && findNeighbor(x, y,  0,  1, &x1, &y1)) 
-                            {
-                                makeLink(x, y, x1, y1, 1, 0);
-                                count++;
-                                curNodeX = 0;
-                                curNodeY = 0;
-                            }
-                            if ((maxLink[1] == 2) && findNeighbor(x, y,  0, -1, &x1, &y1)) 
-                            {
-                                makeLink(x1, y1, x, y, 1, 0);
-                                count++;
-                                curNodeX = 0;
-                                curNodeY = 0;
-                            }
-                            if ((maxLink[2] == 2) && findNeighbor(x, y,  1,  0, &x1, &y1)) 
-                            {
-                                makeLink(x, y, x1, y1, 1, 0);
-                                count++;
-                                curNodeX = 0;
-                                curNodeY = 0;
-                            }
-                            if ((maxLink[3] == 2) && findNeighbor(x, y, -1,  0, &x1, &y1)) 
-                            {
-                                makeLink(x1, y1, x, y, 1, 0);
-                                count++;
-                                curNodeX = 0;
-                                curNodeY = 0;
-                            }
-                        }
-                    }
-                }
-        } while (count > 0);
+ intialPhase();
+ 
+ do
+ {
+  DoAllExplicit();
 
-        if (nextNode(&curNodeX, &curNodeY)) 
-        {
-         if (!setLinkFrom(curNodeX, curNodeY)) rollback();
-        }
-        else if (countGroups() == 1)
-         break;
-        else
-         rollback();//Все раздали, граф несвязен
-    } while (1);
-    for (int i = 0; i < dCnt; i++)
-        printf("%d %d %d %d %d\n", doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
-    return 0;
+  if (nextNode(&curNodeX, &curNodeY)) 
+  {
+   if (!GuessOneLink()) rollback();
+  }
+  else if (countGroups() == 1)
+   break;
+  else
+   rollback();//Все раздали, граф несвязен
+ } while (1);
+ 
+ for (int i = 0; i < dCnt; i++)
+  printf("%d %d %d %d %d\n", doneLink[i].X, doneLink[i].Y, doneLink[i].X1, doneLink[i].Y1, doneLink[i].How);
+ return 0;
 }
